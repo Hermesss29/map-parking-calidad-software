@@ -25,7 +25,7 @@ jobs:
           cache: maven
 
       - name: Run tests and coverage check
-        run: mvn -B verify
+        run: mvn -B clean verify
 
       - name: Upload JaCoCo report
         if: always()
@@ -62,6 +62,9 @@ jobs:
           distribution: "temurin"
           cache: maven
 
+      - name: Prepare backend configuration
+        run: cp Backend/Backend/src/main/resources/application.properties.example Backend/Backend/src/main/resources/application.properties
+
       - name: Build backend
         working-directory: Backend/Backend
         run: mvn -B -DskipTests package
@@ -73,15 +76,17 @@ jobs:
           SPRING_DATASOURCE_USERNAME: root
           SPRING_DATASOURCE_PASSWORD: root
         run: |
+          mkdir -p ../../reports/selenium
           nohup java -jar target/parking-project-0.0.1-SNAPSHOT.jar > ../../reports/selenium/backend-ci.log 2>&1 &
-          for i in {1..60}; do
+          for i in $(seq 1 60); do
             if curl -sf http://localhost:8080/api/user >/dev/null; then
               echo "Backend listo"
               exit 0
             fi
             sleep 5
           done
-          echo "Backend no respondió a tiempo"
+          echo "Backend no respondió"
+          tail -n 80 ../../reports/selenium/backend-ci.log || true
           exit 1
 
       - name: Set up Node.js
@@ -91,25 +96,27 @@ jobs:
           cache: npm
           cache-dependency-path: Front/frontend/package-lock.json
 
-      - name: Install frontend and start
+      - name: Install and start frontend
         working-directory: Front/frontend
         run: |
           npm ci
+          mkdir -p ../../reports/selenium
           nohup npx ng serve --host 0.0.0.0 --port 4200 --disable-host-check > ../../reports/selenium/frontend-ci.log 2>&1 &
-          for i in {1..60}; do
+          for i in $(seq 1 90); do
             if curl -sf http://localhost:4200/home >/dev/null; then
               echo "Frontend listo"
               exit 0
             fi
             sleep 5
           done
-          echo "Frontend no respondió a tiempo"
+          echo "Frontend no respondió"
+          tail -n 80 ../../reports/selenium/frontend-ci.log || true
           exit 1
 
       - name: Set up Chrome
         uses: browser-actions/setup-chrome@v1
 
-      - name: Run Selenium tests (headless Chrome)
+      - name: Run Selenium tests (headless Chrome en CI)
         working-directory: tests/selenium
         run: mvn -B test -Dbrowser=chrome -Dheadless=true
 

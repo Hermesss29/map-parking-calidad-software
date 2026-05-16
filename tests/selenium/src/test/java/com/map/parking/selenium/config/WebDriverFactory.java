@@ -9,35 +9,48 @@ import java.nio.file.Path;
 import java.util.Optional;
 
 /**
- * Brave (Chromium) controlado con ChromeDriver apuntando a brave.exe.
+ * Local: Brave (Chromium). CI/GitHub Actions: Chrome headless.
  */
 public final class WebDriverFactory {
 
     public static WebDriver createDriver() {
-        return createBrave();
+        return createDriver(SeleniumConfig.BROWSER);
     }
 
     public static WebDriver createDriver(String browser) {
         String normalized = browser == null ? "brave" : browser.trim().toLowerCase();
-        if (!"brave".equals(normalized)) {
-            System.out.println("[WebDriver] Solo Brave está soportado; usando Brave.");
-        }
-        return createBrave();
+        return switch (normalized) {
+            case "chrome" -> createChrome(null);
+            case "brave" -> createBrave();
+            default -> braveBinary().isPresent() ? createBrave() : createChrome(null);
+        };
     }
 
     private static WebDriver createBrave() {
         Path binary = braveBinary().orElseThrow(() -> new IllegalStateException(
-                "Brave no encontrado. Instala Brave: https://brave.com/download/"));
+                "Brave no encontrado. Instala Brave o usa -Dbrowser=chrome"));
         System.out.println("[WebDriver] Usando Brave: " + binary);
+        return createChrome(binary);
+    }
+
+    private static WebDriver createChrome(Path binary) {
         ChromeOptions options = new ChromeOptions();
-        options.setBinary(binary.toString());
+        if (binary != null) {
+            options.setBinary(binary.toString());
+        }
+        applyChromiumArgs(options);
+        return new ChromeDriver(options);
+    }
+
+    private static void applyChromiumArgs(ChromeOptions options) {
         options.addArguments("--start-maximized");
         options.addArguments("--disable-search-engine-choice-screen");
         options.addArguments("--remote-allow-origins=*");
+        options.addArguments("--no-sandbox");
+        options.addArguments("--disable-dev-shm-usage");
         if (Boolean.parseBoolean(System.getProperty("headless", "false"))) {
             options.addArguments("--headless=new");
         }
-        return new ChromeDriver(options);
     }
 
     private static Optional<Path> braveBinary() {
