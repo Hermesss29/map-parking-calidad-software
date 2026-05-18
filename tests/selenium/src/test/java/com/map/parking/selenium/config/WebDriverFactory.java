@@ -6,6 +6,8 @@ import org.openqa.selenium.chrome.ChromeOptions;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -21,8 +23,8 @@ public final class WebDriverFactory {
         String normalized = browser == null ? "brave" : browser.trim().toLowerCase();
         return switch (normalized) {
             case "chrome" -> createChrome(null);
-            case "brave" -> createBrave();
-            default -> braveBinary().isPresent() ? createBrave() : createChrome(null);
+            case "brave"  -> createBrave();
+            default       -> braveBinary().isPresent() ? createBrave() : createChrome(null);
         };
     }
 
@@ -54,22 +56,37 @@ public final class WebDriverFactory {
     }
 
     private static Optional<Path> braveBinary() {
-        return firstExisting(
-                Path.of(System.getenv("ProgramFiles"), "BraveSoftware", "Brave-Browser", "Application", "brave.exe"),
-                Path.of(System.getenv("ProgramFiles(x86)"), "BraveSoftware", "Brave-Browser", "Application", "brave.exe"),
-                Path.of(System.getenv("LOCALAPPDATA"), "BraveSoftware", "Brave-Browser", "Application", "brave.exe")
-        );
+        List<Path> candidates = new ArrayList<>();
+
+        // ── Windows ──────────────────────────────────────────────
+        addWindowsPath(candidates, "ProgramFiles");
+        addWindowsPath(candidates, "ProgramFiles(x86)");
+        addWindowsPath(candidates, "LOCALAPPDATA");
+
+        // ── Linux ─────────────────────────────────────────────────
+        candidates.add(Path.of("/usr/bin/brave-browser"));
+        candidates.add(Path.of("/usr/bin/brave"));
+        candidates.add(Path.of("/snap/bin/brave"));
+
+        // ── macOS ─────────────────────────────────────────────────
+        candidates.add(Path.of("/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"));
+
+        return firstExisting(candidates);
     }
 
-    private static Optional<Path> firstExisting(Path... paths) {
-        for (Path path : paths) {
-            if (path != null && Files.isRegularFile(path)) {
-                return Optional.of(path);
-            }
+    /** Agrega la ruta de Windows solo si la variable de entorno existe. */
+    private static void addWindowsPath(List<Path> list, String envVar) {
+        String base = System.getenv(envVar);
+        if (base != null && !base.isBlank()) {
+            list.add(Path.of(base, "BraveSoftware", "Brave-Browser", "Application", "brave.exe"));
         }
-        return Optional.empty();
     }
 
-    private WebDriverFactory() {
+    private static Optional<Path> firstExisting(List<Path> paths) {
+        return paths.stream()
+                .filter(p -> p != null && Files.isRegularFile(p))
+                .findFirst();
     }
+
+    private WebDriverFactory() {}
 }
