@@ -11,6 +11,22 @@ jobs:
   unit-tests:
     name: Pruebas unitarias (JUnit + JaCoCo + SonarCloud)
     runs-on: ubuntu-latest
+    
+    # 🚨 SOLUCIÓN: Agregamos el servicio de MySQL real para que las pruebas de Spring Boot se conecten correctamente
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: map_parking
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
     defaults:
       run:
         working-directory: Backend/Backend
@@ -24,16 +40,15 @@ jobs:
           distribution: "temurin"
           cache: maven
 
-      # 🚨 PASO NUEVO AÑADIDO: Creamos el archivo application.properties para que el test no busque un archivo inexistente
       - name: Prepare backend configuration for tests
         run: cp src/main/resources/application.properties.example src/main/resources/application.properties
 
-      # 🚨 MODIFICADO: Le pasamos propiedades vacías o simuladas a Maven para que la prueba de contexto no falle al buscar MySQL
+      # 🚨 MODIFICADO: Apuntamos las variables de entorno al contenedor de MySQL que acabamos de declarar arriba
       - name: Run tests and coverage check
         env:
-          SPRING_DATASOURCE_URL: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=MySQL
-          SPRING_DATASOURCE_USERNAME: sa
-          SPRING_DATASOURCE_PASSWORD: 
+          SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/map_parking?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+          SPRING_DATASOURCE_USERNAME: root
+          SPRING_DATASOURCE_PASSWORD: root
         run: mvn -B clean verify
 
       # Análisis de Calidad (SonarCloud)
@@ -50,7 +65,6 @@ jobs:
           name: jacoco-report
           path: Backend/Backend/target/site/jacoco/
           retention-days: 14
-
 
   selenium-tests:
     name: Pruebas funcionales (Selenium)
@@ -148,7 +162,7 @@ jobs:
   jmeter-tests:
     name: Pruebas de Carga y Rendimiento (JMeter)
     runs-on: ubuntu-latest
-    needs: selenium-tests # 🚀 Corre únicamente si Selenium pasa sin errores
+    needs: selenium-tests
     services:
       mysql:
         image: mysql:8.0
@@ -198,16 +212,13 @@ jobs:
           echo "Backend no respondió"
           exit 1
 
-      # 📊 INSTALACIÓN Y EJECUCIÓN DE JMETER EN LA NUBE
       - name: Install JMeter
         run: sudo apt-get update && sudo apt-get install -y jmeter
 
       - name: Run JMeter Performance Tests
-        # Asegúrate de guardar tu script .jmx en la ruta: tests/jmeter/parking_load_test.jmx
         run: |
           jmeter -n -t tests/jmeter/parking_load_test.jmx -l reports/jmeter/results.jtl -e -o reports/jmeter/dashboard/
 
-      # Guarda el reporte dinámico HTML generado por JMeter como un artefacto descargable en GitHub
       - name: Upload JMeter Report
         if: always()
         uses: actions/upload-artifact@v4

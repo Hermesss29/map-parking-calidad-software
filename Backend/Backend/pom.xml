@@ -17,6 +17,7 @@
 		<java.version>17</java.version>
 		<!-- Establecer codificación para evitar errores de "MalformedInputException" al filtrar recursos -->
 		<sonar.organization>hermesss29</sonar.organization>
+		<sonar.sources>src/main/java</sonar.sources>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<maven.resources.encoding>UTF-8</maven.resources.encoding>
