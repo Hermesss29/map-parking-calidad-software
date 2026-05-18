@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Import;
 
 @SpringBootTest
 @Import(TestMailConfig.class)
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class ParkingProjectApplicationTests {
 
 	@Test

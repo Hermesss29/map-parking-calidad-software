@@ -43,18 +43,10 @@ jobs:
 
       - name: Run tests and coverage check
         env:
-          # Conexión al clon de MySQL de GitHub Actions
+          # Conexión al contenedor de MySQL de GitHub Actions
           SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/map_parking?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
           SPRING_DATASOURCE_USERNAME: root
           SPRING_DATASOURCE_PASSWORD: root
-          
-          # Variables SMTP simuladas para evitar el fallo de contexto por TestMailConfig
-          SPRING_MAIL_HOST: smtp.gmail.com
-          SPRING_MAIL_PORT: 587
-          SPRING_MAIL_USERNAME: mock-email@gmail.com
-          SPRING_MAIL_PASSWORD: mock-password
-          SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: true
-          SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: true
         run: mvn -B clean verify -Dspring.jpa.hibernate.ddl-auto=update
 
       - name: Analyze with SonarCloud
