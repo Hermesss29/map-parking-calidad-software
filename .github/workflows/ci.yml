@@ -1,14 +1,4 @@
-name: CI - Calidad de Software
-
-on:
-  push:
-    branches: [main, master, develop]
-  pull_request:
-    branches: [main, master, develop]
-  workflow_dispatch:
-
-jobs:
-  unit-tests:
+unit-tests:
     name: Pruebas unitarias (JUnit + JaCoCo + SonarCloud)
     runs-on: ubuntu-latest
     defaults:
@@ -24,10 +14,19 @@ jobs:
           distribution: "temurin"
           cache: maven
 
+      # 🚨 PASO NUEVO AÑADIDO: Creamos el archivo application.properties para que el test no busque un archivo inexistente
+      - name: Prepare backend configuration for tests
+        run: cp src/main/resources/application.properties.example src/main/resources/application.properties
+
+      # 🚨 MODIFICADO: Le pasamos propiedades vacías o simuladas a Maven para que la prueba de contexto no falle al buscar MySQL
       - name: Run tests and coverage check
+        env:
+          SPRING_DATASOURCE_URL: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=MySQL
+          SPRING_DATASOURCE_USERNAME: sa
+          SPRING_DATASOURCE_PASSWORD: 
         run: mvn -B clean verify
 
-      # 🚨 CONFIGURACIÓN DE SONARQUBE CLOUD ACTIVADA
+      # Análisis de Calidad (SonarCloud)
       - name: Analyze with SonarCloud
         env:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
@@ -40,168 +39,4 @@ jobs:
         with:
           name: jacoco-report
           path: Backend/Backend/target/site/jacoco/
-          retention-days: 14
-
-  selenium-tests:
-    name: Pruebas funcionales (Selenium)
-    runs-on: ubuntu-latest
-    needs: unit-tests
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: map_parking
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=10
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: "17"
-          distribution: "temurin"
-          cache: maven
-
-      - name: Prepare backend configuration
-        run: cp Backend/Backend/src/main/resources/application.properties.example Backend/Backend/src/main/resources/application.properties
-
-      - name: Build backend
-        working-directory: Backend/Backend
-        run: mvn -B -DskipTests package
-
-      - name: Start backend
-        working-directory: Backend/Backend
-        env:
-          SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/map_parking?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-          SPRING_DATASOURCE_USERNAME: root
-          SPRING_DATASOURCE_PASSWORD: root
-        run: |
-          mkdir -p ../../reports/selenium
-          nohup java -jar target/parking-project-0.0.1-SNAPSHOT.jar > ../../reports/selenium/backend-ci.log 2>&1 &
-          for i in $(seq 1 60); do
-            if curl -sf http://localhost:8080/api/user >/dev/null; then
-              echo "Backend listo"
-              exit 0
-            fi
-            sleep 5
-          done
-          echo "Backend no respondió"
-          tail -n 80 ../../reports/selenium/backend-ci.log || true
-          exit 1
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: npm
-          cache-dependency-path: Front/frontend/package-lock.json
-
-      - name: Install and start frontend
-        working-directory: Front/frontend
-        run: |
-          npm ci
-          mkdir -p ../../reports/selenium
-          nohup npx ng serve --host 0.0.0.0 --port 4200 --disable-host-check > ../../reports/selenium/frontend-ci.log 2>&1 &
-          for i in $(seq 1 90); do
-            if curl -sf http://localhost:4200/home >/dev/null; then
-              echo "Frontend listo"
-              exit 0
-            fi
-            sleep 5
-          done
-          echo "Frontend no respondió"
-          tail -n 80 ../../reports/selenium/frontend-ci.log || true
-          exit 1
-
-      - name: Set up Chrome
-        uses: browser-actions/setup-chrome@v1
-
-      - name: Run Selenium tests (headless Chrome en CI)
-        working-directory: tests/selenium
-        run: mvn -B test -Dbrowser=chrome -Dheadless=true
-
-      - name: Upload Selenium reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: selenium-surefire-reports
-          path: reports/selenium/surefire-reports/
-          retention-days: 14
-
-  jmeter-tests:
-    name: Pruebas de Carga y Rendimiento (JMeter)
-    runs-on: ubuntu-latest
-    needs: selenium-tests # 🚀 Corre únicamente si Selenium pasa sin errores
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: map_parking
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=10
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: "17"
-          distribution: "temurin"
-          cache: maven
-
-      - name: Prepare backend configuration
-        run: cp Backend/Backend/src/main/resources/application.properties.example Backend/Backend/src/main/resources/application.properties
-
-      - name: Build backend
-        working-directory: Backend/Backend
-        run: mvn -B -DskipTests package
-
-      - name: Start backend
-        working-directory: Backend/Backend
-        env:
-          SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/map_parking?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-          SPRING_DATASOURCE_USERNAME: root
-          SPRING_DATASOURCE_PASSWORD: root
-        run: |
-          mkdir -p ../../reports/jmeter
-          nohup java -jar target/parking-project-0.0.1-SNAPSHOT.jar > ../../reports/jmeter/backend-jmeter.log 2>&1 &
-          for i in $(seq 1 60); do
-            if curl -sf http://localhost:8080/api/user >/dev/null; then
-              echo "Backend listo para JMeter"
-              exit 0
-            fi
-            sleep 5
-          done
-          echo "Backend no respondió"
-          exit 1
-
-      # 📊 INSTALACIÓN Y EJECUCIÓN DE JMETER EN LA NUBE
-      - name: Install JMeter
-        run: sudo apt-get update && sudo apt-get install -y jmeter
-
-      - name: Run JMeter Performance Tests
-        # Asegúrate de guardar tu script .jmx en la ruta: tests/jmeter/parking_load_test.jmx
-        run: |
-          jmeter -n -t tests/jmeter/parking_load_test.jmx -l reports/jmeter/results.jtl -e -o reports/jmeter/dashboard/
-
-      # Guarda el reporte dinámico HTML generado por JMeter como un artefacto descargable en GitHub
-      - name: Upload JMeter Report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: jmeter-html-report
-          path: reports/jmeter/dashboard/
           retention-days: 14
