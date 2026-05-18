@@ -5,7 +5,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import javax.sql.DataSource;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+    "spring.jpa.hibernate.ddl-auto=none"
+})
 class ParkingProjectApplicationTests {
 
     @MockBean
