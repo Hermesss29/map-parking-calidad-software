@@ -7,7 +7,10 @@ on:
     branches: [main, master, develop]
   workflow_dispatch:
 
-unit-tests:
+# 🚨 AQUÍ ESTÁ EL CAMBIO: 'jobs:' debe agrupar a todas las tareas de abajo
+jobs:
+
+  unit-tests:
     name: Pruebas unitarias (JUnit + JaCoCo + SonarCloud)
     runs-on: ubuntu-latest
     services:
@@ -46,7 +49,6 @@ unit-tests:
           SPRING_DATASOURCE_PASSWORD: root
         run: mvn -B clean verify -Dspring.jpa.hibernate.ddl-auto=update
 
-      # 🚨 CORREGIDO: Se limpió el ${{ secrets.secrets... }} que estaba duplicado
       - name: Analyze with SonarCloud
         env:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
@@ -61,7 +63,7 @@ unit-tests:
           path: Backend/Backend/target/site/jacoco/
           retention-days: 14
 
-selenium-tests:
+  selenium-tests:
     name: Pruebas funcionales (Selenium)
     runs-on: ubuntu-latest
     needs: unit-tests
@@ -139,7 +141,6 @@ selenium-tests:
           tail -n 80 ../../reports/selenium/frontend-ci.log || true
           exit 1
 
-      # 🚨 SOLUCIÓN A SONARCLOUD: Se utiliza el commit SHA inmutable oficial de setup-chrome para cumplir con la regla de seguridad estricta
       - name: Set up Chrome
         uses: browser-actions/setup-chrome@63e9f4503f19bc3bb19a4e695be2436f56f4d2f0
 
@@ -155,7 +156,7 @@ selenium-tests:
           path: reports/selenium/surefire-reports/
           retention-days: 14
 
-jmeter-tests:
+  jmeter-tests:
     name: Pruebas de Carga y Rendimiento (JMeter)
     runs-on: ubuntu-latest
     needs: selenium-tests
