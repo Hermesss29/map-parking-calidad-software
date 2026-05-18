@@ -256,16 +256,25 @@ jobs:
 
       - name: Ejecutar pruebas JMeter
         run: |
-          mkdir -p reports/jmeter/dashboard
+          # JMeter requiere que el directorio de salida NO exista previamente
+          rm -rf reports/jmeter/dashboard
+          mkdir -p reports/jmeter
+
           jmeter -n \
             -t tests/jmeter/parking_load_test.jmx \
             -l reports/jmeter/results.jtl \
-            -e -o reports/jmeter/dashboard/
+            -e -o reports/jmeter/dashboard/ \
+            -Jjmeter.save.saveservice.output_format=xml
+          
+          echo "--- Verificando resultados ---"
+          ls -lh reports/jmeter/results.jtl || echo "⚠️ results.jtl no generado"
+          ls -lh reports/jmeter/dashboard/  || echo "⚠️ dashboard vacío"
 
       - name: Subir reporte JMeter
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: jmeter-html-report
-          path: reports/jmeter/dashboard/
+          path: reports/jmeter/
+          if-no-files-found: warn
           retention-days: 14
