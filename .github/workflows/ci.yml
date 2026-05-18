@@ -166,12 +166,20 @@ jobs:
           tail -n 100 ../../reports/selenium/frontend-ci.log || true
           exit 1
 
-      - name: Set up Chrome
-        uses: browser-actions/setup-chrome@63e9f4503f19bc3bb19a4e695be2436f56f4d2f0
+      - name: Verificar Chrome
+        run: google-chrome --version
 
       - name: Ejecutar tests Selenium
         working-directory: tests/selenium
-        run: mvn -B test -Dbrowser=chrome -Dheadless=true
+        env:
+          DISPLAY: :99
+        run: |
+          Xvfb :99 -screen 0 1920x1080x24 &
+          mvn -B test \
+            -Dbrowser=chrome \
+            -Dheadless=true \
+            -Dbase.url=http://localhost:4200 \
+            -Dapi.url=http://localhost:8080
 
       - name: Subir reportes Selenium
         if: always()
