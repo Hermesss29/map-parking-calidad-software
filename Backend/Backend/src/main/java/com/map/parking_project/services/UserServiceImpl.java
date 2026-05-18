@@ -13,19 +13,16 @@ import java.util.ArrayList;
 import java.security.SecureRandom;
 import java.util.List;
 
-
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
-import java.util.Optional;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.web.server.ResponseStatusException;
 
-
 @Service
-public class     UserServiceImpl implements IUserService {
+public class UserServiceImpl implements IUserService {
 
     @Autowired
     private IUserRepository userDao; // Repositorio para manejar la entidad User
@@ -66,7 +63,8 @@ public class     UserServiceImpl implements IUserService {
             byte[] hash = instancia.digest(password.getBytes(StandardCharsets.UTF_8)); // Genera el hash de la contraseña
             return HexFormat.of().formatHex(hash); // Convierte el hash en una cadena hexadecimal
         } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Error al encriptar la contraseña"); // Manejo de errores en caso de que falle el algoritmo
+            // ✅ CORREGIDO: Se cambia RuntimeException por IllegalStateException y se pasa la excepción original 'e'
+            throw new IllegalStateException("Error al encriptar la contraseña: el algoritmo SHA-256 no está disponible", e);
         }
     }
 
@@ -117,5 +115,4 @@ public class     UserServiceImpl implements IUserService {
         return userDao.findByPlate(plate)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado con la placa: " + plate));
     }
-
 }

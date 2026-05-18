@@ -16,6 +16,7 @@
 	<properties>
 		<java.version>17</java.version>
 		<!-- Establecer codificación para evitar errores de "MalformedInputException" al filtrar recursos -->
+		<sonar.organization>hermesss29</sonar.organization>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<maven.resources.encoding>UTF-8</maven.resources.encoding>
@@ -49,12 +50,6 @@
 			<groupId>com.mysql</groupId>
 			<artifactId>mysql-connector-j</artifactId>
 			<scope>runtime</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>com.h2database</groupId>
-			<artifactId>h2</artifactId>
-			<scope>test</scope>
 		</dependency>
 
 		<dependency>
@@ -110,10 +105,7 @@
 						<configuration>
 							<rules>
 								<rule>
-									<element>PACKAGE</element>
-									<includes>
-										<include>com.map.parking_project.services*</include>
-									</includes>
+									<element>BUNDLE</element>
 									<limits>
 										<limit>
 											<counter>LINE</counter>

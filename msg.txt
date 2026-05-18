@@ -1,0 +1,1 @@
+fix: CI unitarios con H2, mock mail y Chrome headless en Actions

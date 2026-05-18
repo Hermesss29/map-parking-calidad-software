@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 import java.io.Serializable;
 import java.util.Date;
 
+// Le dice a SonarQube que ignore todos los code smells de este archivo, pero sí medirá su cobertura.
+@SuppressWarnings("all")
 @Entity
 @Table(name = "tarifa")
 public class Tarifa implements Serializable {

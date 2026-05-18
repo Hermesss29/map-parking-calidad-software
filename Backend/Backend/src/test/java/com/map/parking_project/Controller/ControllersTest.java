@@ -75,7 +75,7 @@ class UserRestControllerTest {
 
         mockMvc.perform(post("/api/recuperarcontrasenia").param("email", "juan@test.com"))
                 .andExpect(status().isOk())
-                .andExpect(content().string("Se ha enviado un correo con la nueva contraseña."));
+                .andExpect(content().json("{\"message\":\"Se ha enviado un correo con la nueva contraseña.\"}"));
     }
 
     @Test
@@ -91,7 +91,7 @@ class UserRestControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonRequest))
                 .andExpect(status().isOk())
-                .andExpect(content().string("7.0")); // 3.5 * 2 horas
+                .andExpect(content().json("{\"total\":7.0,\"message\":\"Tarifa calculada con éxito\"}")); // 3.5 * 2 horas
     }
 
     @Test

@@ -1,8 +1,5 @@
 package com.map.parking_project.Controller;
 
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.never;
 import com.map.parking_project.controllers.ReservaRestController;
 import com.map.parking_project.models.Reservas;
 import com.map.parking_project.services.IReservaService;
@@ -13,21 +10,24 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-
+import com.map.parking_project.dto.ReservaDTO;
+import java.time.LocalDate;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Arrays;
 import java.util.Optional;
-
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(ReservaRestController.class)
-public class ReservaRestControllerTest {
+class ReservaRestControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @MockitoBean
     private IReservaService reservaService;
@@ -88,12 +88,12 @@ public class ReservaRestControllerTest {
         mockMvc.perform(get("/api/reservas/99")).andExpect(status().isNotFound());
 
         // Caso: Eliminar reserva que NO existe (Cubre el ELSE de eliminar)
-        mockMvc.perform(delete("/api/reservas/99")).andExpect(status().isOk());;
+        mockMvc.perform(delete("/api/reservas/99")).andExpect(status().isNotFound());
     }
 
     @Test
     void testConfirmarReserva_Exito() throws Exception {
-        Reservas reserva = new Reservas();
+        reserva = new Reservas();
         reserva.setId(1L);
         reserva.setConfirmada(false);
 
@@ -118,5 +118,55 @@ public class ReservaRestControllerTest {
                 .andExpect(status().isNotFound());
 
         org.mockito.Mockito.verify(reservaService, org.mockito.Mockito.never()).save(org.mockito.ArgumentMatchers.any(Reservas.class));
+    }
+
+    @Test
+    void testActualizarReserva_Exito() throws Exception {
+        // 1. Preparar los datos de prueba
+        Long reservaId = 1L;
+        
+        // El DTO que simula lo que envía Angular
+        ReservaDTO reservaDTO = new ReservaDTO();
+        reservaDTO.setTipo_vehiculo("Camioneta");
+        reservaDTO.setTipo_servicio("Lavado Completo");
+        reservaDTO.setHoras(3);
+        reservaDTO.setFecha(LocalDate.now());
+        reservaDTO.setPrecio(25.0);
+
+        // La Entidad vieja que simula lo que está en la base de datos
+        Reservas reservaExistente = new Reservas();
+        reservaExistente.setId(reservaId);
+        reservaExistente.setTipo_vehiculo("Moto"); // Este dato debería cambiar
+
+        // 2. Configurar el comportamiento del Mock
+        when(reservaService.findById(reservaId)).thenReturn(Optional.of(reservaExistente));
+        
+        // 3. Ejecutar la petición simulada y verificar resultados
+        mockMvc.perform(put("/api/reservas/{id}", reservaId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(reservaDTO)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Reserva actualizada correctamente"))
+                .andExpect(jsonPath("$.reserva.tipo_vehiculo").value("Camioneta")); // Verifica que mapeó bien
+    }
+
+    @Test
+    void testActualizarReserva_NoEncontrada() throws Exception {
+        // 1. Preparar los datos
+        Long reservaId = 99L; // Un ID que no existe
+        ReservaDTO reservaDTO = new ReservaDTO();
+        reservaDTO.setTipo_vehiculo("Automóvil");
+
+        // 2. Configurar el Mock para que devuelva vacío
+        when(reservaService.findById(reservaId)).thenReturn(Optional.empty());
+
+        // 3. Ejecutar la petición simulada y verificar el error 404
+        mockMvc.perform(put("/api/reservas/{id}", reservaId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(reservaDTO)))
+                .andExpect(status().isNotFound())
+                // Si tienes acceso a tu constante MESSAGE_KEY, puedes descomentar la siguiente línea:
+                // .andExpect(jsonPath("$.message").exists()) 
+                ;
     }
 }

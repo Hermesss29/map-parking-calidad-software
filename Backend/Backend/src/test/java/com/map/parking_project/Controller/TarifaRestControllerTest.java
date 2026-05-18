@@ -2,18 +2,12 @@ package com.map.parking_project.Controller;
 
 import com.map.parking_project.controllers.TarifaRestController;
 import com.map.parking_project.models.Tarifa;
-import com.map.parking_project.models.User;
-import com.map.parking_project.models.User;
-import com.map.parking_project.repositories.IUserRepository;
 import com.map.parking_project.services.ITarifaServices;
-import com.map.parking_project.services.UserServiceImpl;
-import com.map.parking_project.services.UserServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -25,7 +19,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(TarifaRestController.class)
-public class TarifaRestControllerTest {
+class TarifaRestControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -74,7 +68,7 @@ public class TarifaRestControllerTest {
         mockMvc.perform(post("/api/tarifas")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
     }
 
     @Test
@@ -85,7 +79,7 @@ public class TarifaRestControllerTest {
         mockMvc.perform(post("/api/tarifas")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
-                .andExpect(status().isInternalServerError());
+                .andExpect(status().isBadRequest());
     }
 
     @Test

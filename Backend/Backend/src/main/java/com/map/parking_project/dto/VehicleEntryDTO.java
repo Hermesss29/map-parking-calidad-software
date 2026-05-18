@@ -1,35 +1,17 @@
-package com.map.parking_project.models;
+package com.map.parking_project.dto;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-
-import java.time.LocalDate;
 import java.time.LocalTime;
-
 
 // Le dice a SonarQube que ignore todos los code smells de este archivo, pero sí medirá su cobertura.
 @SuppressWarnings("all")
-@Entity
-public class VehicleEntry {
-    @Id
-    @GeneratedValue(strategy =  GenerationType.IDENTITY)
-    private Long id;
+public class VehicleEntryDTO {
+    
     private String placa;
     private String tipoVehiculo;
     private String ubicacion;
-    private LocalTime horaIngreso;
-    private LocalDate fechaIngreso = LocalDate.now();
+    private LocalTime horaIngreso; // Spring Boot convierte el string de Angular automáticamente
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
+    // Getters y Setters
     public String getPlaca() {
         return placa;
     }
@@ -60,13 +42,5 @@ public class VehicleEntry {
 
     public void setHoraIngreso(LocalTime horaIngreso) {
         this.horaIngreso = horaIngreso;
-    }
-
-    public LocalDate getFechaIngreso() {
-        return fechaIngreso;
-    }
-
-    public void setFechaIngreso(LocalDate fechaIngreso) {
-        this.fechaIngreso = fechaIngreso;
     }
 }

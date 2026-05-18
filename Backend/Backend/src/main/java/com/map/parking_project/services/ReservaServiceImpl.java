@@ -9,9 +9,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+//  1. IMPORTS AÑADIDOS PARA EL LOGGER
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class ReservaServiceImpl implements IReservaService {
+
+    //  2. DECLARACIÓN DEL LOGGER (Asociado a esta clase específica)
+    private static final Logger logger = LoggerFactory.getLogger(ReservaServiceImpl.class);
 
     @Autowired
     private IReservasRepository repository;
@@ -38,17 +44,20 @@ public class ReservaServiceImpl implements IReservaService {
     @Transactional
     public void update(Reservas reserva, Long id) {
         Optional<Reservas> reservaActual = repository.findById(id);
+
         if (reservaActual.isPresent()) {
             Reservas res = reservaActual.get();
             res.setTipo_vehiculo(reserva.getTipo_vehiculo());
             res.setTipo_servicio(reserva.getTipo_servicio());
-            res.setHoras(reserva.getHoras()); // Actualiza las horas
-            res.setFecha(reserva.getFecha()); // Actualiza la fecha
+            res.setHoras(reserva.getHoras()); 
+            res.setFecha(reserva.getFecha()); 
             res.setPrecio(reserva.getPrecio());
-            res.setConfirmada(reserva.isConfirmada()); // Actualiza el estado de confirmación
+            res.setConfirmada(reserva.isConfirmada()); 
             repository.save(res);
         } else {
-            System.out.println("Reserva no encontrada");
+            //  3. CORREGIDO: Reemplazado System.out por un logger estructurado
+            // Usamos {} para pasarle el ID dinámicamente, que es una excelente práctica que SonarQube ama.
+            logger.warn("Reserva no encontrada con ID: {}", id);
         }
     }
 
@@ -57,5 +66,4 @@ public class ReservaServiceImpl implements IReservaService {
     public void delete(Long id) {
         repository.deleteById(id);
     }
-
 }

@@ -7,8 +7,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.map.parking_project.dto.UserDTO;
+import com.map.parking_project.dto.ValidarTarifaDTO;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -18,108 +19,114 @@ import java.util.Map;
 public class UserRestController {
 
     @Autowired
-    private IUserService userService; // Servicio para manejar operaciones relacionadas con usuarios
+    private IUserService userService;
+
+    // 🔹 CONSTANTES PARA ESTANDARIZAR JSON Y EVITAR CODE SMELLS
+    private static final String MESSAGE_KEY = "message";
+    private static final String ERROR_KEY = "error";
 
     @GetMapping("/user")
     public List<User> index() {
-        return userService.findAll(); // Devuelve la lista de todos los usuarios
+        return userService.findAll();
     }
 
     @GetMapping("/user/{id}")
     public ResponseEntity<User> show(@PathVariable Long id) {
-        User user = userService.findById(id); // Busca un usuario por su ID
-        return user != null ? ResponseEntity.ok(user) : ResponseEntity.notFound().build(); // Retorna el usuario si existe, de lo contrario, retorna 404
+        User user = userService.findById(id);
+        return user != null ? ResponseEntity.ok(user) : ResponseEntity.notFound().build();
     }
 
     @PostMapping("/user")
     @ResponseStatus(HttpStatus.CREATED)
-    public User create(@RequestBody User user) {
-        return userService.saveUser(user); // Guarda un nuevo usuario y devuelve el usuario creado
+    public User create(@RequestBody UserDTO userDTO) {
+        User newUser = new User();
+        newUser.setName(userDTO.getName());
+        newUser.setLastname(userDTO.getLastname());
+        newUser.setPhone(userDTO.getPhone());
+        newUser.setPlate(userDTO.getPlate());
+        newUser.setTypecar(userDTO.getTypecar());
+        newUser.setEmail(userDTO.getEmail());
+        newUser.setPassword(userDTO.getPassword());
+        newUser.setRol(userDTO.getRol());
+
+        return userService.saveUser(newUser);
     }
 
     @PutMapping("/user/{id}")
-    public ResponseEntity<User> update(@RequestBody User user, @PathVariable Long id) {
-        User currentUser = userService.findById(id); // Busca el usuario actual por su ID
+    public ResponseEntity<User> update(@RequestBody UserDTO userDTO, @PathVariable Long id) {
+        User currentUser = userService.findById(id);
 
         if (currentUser == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null); // Retorna 404 si el usuario no existe
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
 
+        currentUser.setName(userDTO.getName());
+        currentUser.setLastname(userDTO.getLastname());
+        currentUser.setPhone(userDTO.getPhone());
+        currentUser.setPlate(userDTO.getPlate());
+        currentUser.setTypecar(userDTO.getTypecar());
+        currentUser.setEmail(userDTO.getEmail());
+        currentUser.setPassword(userDTO.getPassword());
+        currentUser.setRol(userDTO.getRol());
 
-        // Actualiza los datos del usuario con la nueva información proporcionada
-        currentUser.setName(user.getName());
-        currentUser.setLastname(user.getLastname());
-        currentUser.setPhone(user.getPhone());
-        currentUser.setPlate(user.getPlate());
-        currentUser.setTypecar(user.getTypecar());
-        currentUser.setEmail(user.getEmail());
-        currentUser.setPassword(user.getPassword());
-        currentUser.setRol(user.getRol());
-
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(userService.save(currentUser)); // Guarda los cambios y retorna el usuario actualizado
+        return ResponseEntity.status(HttpStatus.CREATED).body(userService.save(currentUser));
     }
 
     @DeleteMapping("/user/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) {
-        userService.delete(id); // Elimina el usuario con el ID proporcionado
+        userService.delete(id);
     }
 
     @PostMapping("/recuperarcontrasenia")
-    public ResponseEntity<?> recuperarContraseña(@RequestParam String email) {
-        User user = userService.findByEmail(email); // Busca un usuario por su correo electrónico
+    public ResponseEntity<Map<String, String>> recuperarContrasenia(@RequestParam String email) {
+        User user = userService.findByEmail(email);
 
         if (user == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Correo no registrado"); // Retorna error 404 si el usuario no existe
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(ERROR_KEY, "Correo no registrado"));
         }
 
-        String nuevaContrasenia = userService.generarContraseniaAleatoria(); // Genera una nueva contraseña aleatoria
-
+        String nuevaContrasenia = userService.generarContraseniaAleatoria();
         user.setPassword(userService.ContraseniaSha256(nuevaContrasenia));
-        // Asigna la nueva contraseña al usuario
-
         userService.save(user);
-        // Guarda el usuario con la nueva contraseña
 
         String asunto = "Recuperación de contraseña";
         String cuerpo = "Tu nueva contraseña es: " + nuevaContrasenia;
         try {
-            userService.sendEmail(email, asunto, cuerpo); // Envía la nueva contraseña por correo
-            return ResponseEntity.ok("Se ha enviado un correo con la nueva contraseña.");
+            userService.sendEmail(email, asunto, cuerpo);
+            return ResponseEntity.ok(Map.of(MESSAGE_KEY, "Se ha enviado un correo con la nueva contraseña."));
         } catch (MessagingException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error al enviar el correo."); // Retorna error si falla el envío del correo
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(ERROR_KEY, "Error al enviar el correo."));
         }
     }
 
     @GetMapping("/send")
-    public String sendEmail(
+    public ResponseEntity<Map<String, String>> sendEmail(
             @RequestParam String to,
             @RequestParam String subject,
             @RequestParam String body) {
         try {
             userService.sendEmail(to, subject, body);
-            // Envía un correo con los datos proporcionados
-            return "Correo enviado correctamente a " + to;
+            return ResponseEntity.ok(Map.of(MESSAGE_KEY, "Correo enviado correctamente a " + to));
         } catch (MessagingException e) {
-            return "Error enviando el correo: " + e.getMessage();
-            // Retorna un mensaje de error si el envío falla
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(ERROR_KEY, "Error enviando el correo: " + e.getMessage()));
         }
     }
 
-
     @PostMapping("/validar-tarifa")
-    public ResponseEntity<?> validarYCalcularTarifa(@RequestBody User request) {
+    public ResponseEntity<Map<String, Object>> validarYCalcularTarifa(@RequestBody ValidarTarifaDTO request) {
         try {
-            // Buscar el usuario por la placa
             User user = userService.findByPlate(request.getPlate());
 
-            // Validar que el tipo de vehículo coincida
-            if (!user.getTypecar().equals(request.getTypecar())) {
-                throw new RuntimeException("El tipo de vehículo no coincide con el registrado.");
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(ERROR_KEY, "Vehículo no encontrado."));
             }
 
-            // Lógica de tarifas según el tipo de vehículo
+            if (!user.getTypecar().equals(request.getTypecar())) {
+                // ✅ CORRECCIÓN 1: Reemplazado RuntimeException por IllegalArgumentException
+                throw new IllegalArgumentException("El tipo de vehículo no coincide con el registrado.");
+            }
+
             double tarifaBase;
             switch (user.getTypecar()) {
                 case "Automóvil":
@@ -132,18 +139,17 @@ public class UserRestController {
                     tarifaBase = 2.5;
                     break;
                 default:
-                    throw new RuntimeException("Tipo de vehículo no válido.");
+                    // ✅ CORRECCIÓN 2: Reemplazado RuntimeException por IllegalArgumentException
+                    throw new IllegalArgumentException("Tipo de vehículo no válido.");
             }
 
-            // Calcular el costo total
             double total = tarifaBase * request.getHours();
-            return ResponseEntity.ok(total);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+
+            return ResponseEntity.ok(Map.of("total", total, MESSAGE_KEY, "Tarifa calculada con éxito"));
+
+        // ✅ CORRECCIÓN 3: El catch ahora captura específicamente IllegalArgumentException
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(ERROR_KEY, e.getMessage()));
         }
     }
-
-
 }
-
-

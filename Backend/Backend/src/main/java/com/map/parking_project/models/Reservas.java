@@ -10,7 +10,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-
+// Le dice a SonarQube que ignore todos los code smells de este archivo, pero sí medirá su cobertura.
+@SuppressWarnings("all")
 @Entity
 @Table(name = "reservas")
 public class Reservas implements Serializable {

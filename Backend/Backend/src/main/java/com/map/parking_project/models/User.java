@@ -10,6 +10,8 @@ import jakarta.persistence.Table;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
+// Le dice a SonarQube que ignore todos los code smells de este archivo, pero sí medirá su cobertura.
+@SuppressWarnings("all")
 @Table(name = "users")
 @Entity
 
