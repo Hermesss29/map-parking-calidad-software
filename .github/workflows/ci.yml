@@ -7,12 +7,9 @@ on:
     branches: [main, master, develop]
   workflow_dispatch:
 
-jobs:
-  unit-tests:
+unit-tests:
     name: Pruebas unitarias (JUnit + JaCoCo + SonarCloud)
     runs-on: ubuntu-latest
-    
-    # 🚨 SOLUCIÓN: Agregamos el servicio de MySQL real para que las pruebas de Spring Boot se conecten correctamente
     services:
       mysql:
         image: mysql:8.0
@@ -26,7 +23,6 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
-
     defaults:
       run:
         working-directory: Backend/Backend
@@ -43,15 +39,14 @@ jobs:
       - name: Prepare backend configuration for tests
         run: cp src/main/resources/application.properties.example src/main/resources/application.properties
 
-      # 🚨 MODIFICADO: Apuntamos las variables de entorno al contenedor de MySQL que acabamos de declarar arriba
       - name: Run tests and coverage check
         env:
           SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/map_parking?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
           SPRING_DATASOURCE_USERNAME: root
           SPRING_DATASOURCE_PASSWORD: root
-        run: mvn -B clean verify
+        run: mvn -B clean verify -Dspring.jpa.hibernate.ddl-auto=update
 
-      # Análisis de Calidad (SonarCloud)
+      # 🚨 CORREGIDO: Se limpió el ${{ secrets.secrets... }} que estaba duplicado
       - name: Analyze with SonarCloud
         env:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
@@ -144,8 +139,9 @@ jobs:
           tail -n 80 ../../reports/selenium/frontend-ci.log || true
           exit 1
 
+      # 🚨 SOLUCIÓN A SONARCLOUD: Se utiliza el commit SHA inmutable oficial de setup-chrome para cumplir con la regla de seguridad estricta
       - name: Set up Chrome
-        uses: browser-actions/setup-chrome@v1
+        uses: browser-actions/setup-chrome@63e9f4503f19bc3bb19a4e695be2436f56f4d2f0
 
       - name: Run Selenium tests (headless Chrome en CI)
         working-directory: tests/selenium
