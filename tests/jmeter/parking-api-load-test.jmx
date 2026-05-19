@@ -70,12 +70,13 @@
           <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
         </HTTPSamplerProxy>
         <hashTree>
-          <JSONPathExtractor guiclass="JSONPathExtractorGui" testclass="JSONPathExtractor"
-                             testname="Extraer userId" enabled="true">
-            <stringProp name="JSONPathExtractor.referenceName">userId</stringProp>
-            <stringProp name="JSONPathExtractor.jsonPathExpr">$.id</stringProp>
-            <stringProp name="JSONPathExtractor.defaultValue">-1</stringProp>
-          </JSONPathExtractor>
+          <JSONPostProcessor guiclass="JSONPostProcessorGui"
+                   testclass="JSONPostProcessor" ...>
+          <stringProp name="JSONPostProcessor.referenceNames">userId</stringProp>
+              <stringProp name="JSONPostProcessor.jsonPathExprs">$.id</stringProp>
+              <stringProp name="JSONPostProcessor.match_numbers">1</stringProp>
+              <stringProp name="JSONPostProcessor.defaultValues">-1</stringProp>
+          </JSONPostProcessor>
           <hashTree/>
         </hashTree>
 
