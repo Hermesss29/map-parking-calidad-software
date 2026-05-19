@@ -249,17 +249,14 @@ jobs:
           tail -n 100 ../../reports/jmeter/backend-jmeter.log || true
           exit 1
 
-      - name: Instalar JMeter 5.6.3
+      - name: Instalar JMeter
         run: |
-          wget -q https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.3.tgz
-          tar -xzf apache-jmeter-5.6.3.tgz
-          echo "$GITHUB_WORKSPACE/apache-jmeter-5.6.3/bin" >> $GITHUB_PATH
-
-      - name: Verificar versión JMeter
-        run: jmeter --version
+          sudo apt-get update -qq
+          sudo apt-get install -y jmeter
 
       - name: Ejecutar pruebas JMeter
         run: |
+          # JMeter requiere que el directorio de salida NO exista previamente
           rm -rf reports/jmeter/dashboard
           mkdir -p reports/jmeter
 
@@ -267,9 +264,8 @@ jobs:
             -t tests/jmeter/parking-api-load-test.jmx \
             -l reports/jmeter/results.jtl \
             -e -o reports/jmeter/dashboard/ \
-            -Japi.host=localhost \
-            -Japi.port=8080
-
+            -Jjmeter.save.saveservice.output_format=xml
+          
           echo "--- Verificando resultados ---"
           ls -lh reports/jmeter/results.jtl || echo "⚠️ results.jtl no generado"
           ls -lh reports/jmeter/dashboard/  || echo "⚠️ dashboard vacío"
