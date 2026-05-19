@@ -261,7 +261,7 @@ jobs:
           mkdir -p reports/jmeter
 
           jmeter -n \
-            -t tests/jmeter/parking_load_test.jmx \
+            -t tests/jmeter/parking-api-load-test.jmx \
             -l reports/jmeter/results.jtl \
             -e -o reports/jmeter/dashboard/ \
             -Jjmeter.save.saveservice.output_format=xml
